@@ -79,24 +79,25 @@ void setup()
 void loop()
 {
   inVal = map(analogRead(IN),0,4095,0,127);
-  if(abs(inVal - prevIntVal) > 1) {
+  if(abs(inVal - prevIntVal) > 20) {
     MIDIctl = false;
+  }
+  if(abs(inVal - prevIntVal) > 1 && !MIDIctl) {
     prevIntVal = inVal;
     outVal = inVal;
   }
   if(MIDIctl) {
     fade = (float) levelCount / 3;
-    noteLevel = (uint8_t) (noteVel * fade);
+    noteLevel = (uint8_t) ( (float) noteVel * fade);
     outVal = noteLevel + ccLevel;
     if(outVal > 127) outVal = 127;    
   }
   digitalPotWrite(outVal);
   if(levelCount>0) {
-    Serial.print("\tout: ");
-    Serial.println(outVal);
     levelCount--;
+    Serial.println(outVal);
   }
-  delay(dly);
+  delay(dly); 
 }
 
 int digitalPotWrite(int value)
