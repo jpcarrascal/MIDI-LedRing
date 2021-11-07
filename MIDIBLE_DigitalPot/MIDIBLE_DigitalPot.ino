@@ -8,7 +8,7 @@
  */
 
 #define OUT 5
-#define IN 15
+#define IN 2
 #define CC 119
 static const int spiClk = 1000000;
 byte address = 0x00;
@@ -20,9 +20,10 @@ uint8_t level      = 0,
         dly        = 41,
         maxCount   = 3,
         levelCount = 3,
-        prevIntVal = 0,
+        prevInVal = 0,
         inVal      = 0,
-        outVal     = 0;
+        outVal     = 0,
+        prevOutVal = 0;
 float fade;
 bool MIDIctl = false;
 
@@ -61,6 +62,7 @@ void setup()
   Serial.begin(115200);
   pinMode(OUT, OUTPUT);
   pinMode(IN, INPUT);
+
   // SPI init:
   vspi = new SPIClass(VSPI);
   vspi->begin();
@@ -74,16 +76,20 @@ void setup()
   BLEMidiServer.setControlChangeCallback(onControlChange);
   //BLEMidiServer.setProgramChangeCallback(onProgramChange);
   //BLEMidiServer.enableDebugging();
+
+  digitalPotWrite(0);
+  delay(100);
+  digitalPotWrite(0);
 }
 
 void loop()
 {
   inVal = map(analogRead(IN),0,4095,0,127);
-  if(abs(inVal - prevIntVal) > 20) {
+  if(abs(inVal - prevInVal) > 20) {
     MIDIctl = false;
   }
-  if(abs(inVal - prevIntVal) > 1 && !MIDIctl) {
-    prevIntVal = inVal;
+  if(abs(inVal - prevInVal)>2 && !MIDIctl) {
+    prevInVal = inVal;
     outVal = inVal;
   }
   if(MIDIctl) {
@@ -92,16 +98,17 @@ void loop()
     outVal = noteLevel + ccLevel;
     if(outVal > 127) outVal = 127;    
   }
-  digitalPotWrite(outVal);
-  if(levelCount>0) {
-    levelCount--;
-    Serial.println(outVal);
+  if(prevOutVal != outVal) {
+    digitalPotWrite(outVal);
+     prevOutVal = outVal;
   }
+  if(levelCount>0) levelCount--;
   delay(dly); 
 }
 
 int digitalPotWrite(int value)
 {
+  Serial.println(value);
   vspi->beginTransaction(SPISettings(spiClk, MSBFIRST, SPI_MODE0));
   digitalWrite(OUT, LOW);
   vspi->transfer(address);
